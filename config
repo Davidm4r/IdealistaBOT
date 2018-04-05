@@ -1,0 +1,13 @@
+[TELEGRAM]
+Token:
+ChatID:
+
+[IDEALISTA]
+url:
+proxy:
+user-agent:
+
+[MONGODB]
+database:
+collection:
+
