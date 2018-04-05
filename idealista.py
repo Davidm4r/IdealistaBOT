@@ -3,6 +3,12 @@ from bs4 import BeautifulSoup
 from pprint import pprint
 import json
 import pymongo
+import configparser
+import telebot
+
+
+config = configparser.ConfigParser()
+config.read('config')
 
 class House(object):
 
@@ -58,11 +64,14 @@ class House(object):
 		TODO
 		If we find a new flat. Send an email
 		'''
-		pass
+		TOKEN =str(config['TELEGRAM']['Token'])
+		bot = telebot.TeleBot(TOKEN)
+		bot.send_message(config['TELEGRAM']['ChatID'],self.url)
+
 
 	def save_into_db(self):
-
 		if db.find_one({'url': self.url}) is None:
+			print("INSERTADO")
 			s = json.dumps(self.__dict__,ensure_ascii=False)
 			db.insert(json.loads(s))
 			self.send_email()
@@ -73,7 +82,17 @@ def houselist(url):
 	Return a list of houses given and url
 	'''
 
-	r = requests.get(url)
+	#Experimental headers. Withouth them, Idealista will ban us.
+	headers = {
+        'Accept' : 'application/json', 
+        'Content-Type' : 'application/json',
+        "Accept-Encoding": "gzip, deflate, sdch, br",
+        "Accept-Language": "en-US,en;q=0.8",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X x.y; rv:42.0) Gecko/20100101 Firefox/42.0",
+    }	
+	session = requests.Session()
+	r = session.get(url, headers=headers)
+	print(r)
 	soup = BeautifulSoup(r.text, 'html.parser')
 	houselist=soup.findAll('article')
 	return houselist
@@ -85,7 +104,8 @@ if __name__ == "__main__":
 	db = client.idealista['alcala']
 
 	#Generate the list of houses
-	houselist=houselist('https://www.idealista.com/alquiler-viviendas/alcala-de-henares-madrid/?ordenado-por=fecha-publicacion-desc')
+	houselist=houselist(str(config['IDEALISTA']['url']))
+	#houselist=houselist('https://www.idealista.com/')
 	for house in houselist:
 		h = House()
 		h.get_link(house)
